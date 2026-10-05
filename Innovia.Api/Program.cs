@@ -1,3 +1,4 @@
+using Innovia.Api.Features.Assistant;
 using Innovia.Api.Common.Auth;
 using Innovia.Api.Common.Database;
 using Innovia.Api.Common.Database.Entities;
@@ -16,6 +17,8 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Scalar.AspNetCore;
 using System.Text.Json.Serialization;
+
+
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -83,6 +86,7 @@ builder.Services.AddResourceTypesFeature();
 builder.Services.AddAvailabilityFeature();
 builder.Services.AddOccupancyFeature();
 builder.Services.AddUsersFeature();
+builder.Services.AddAssistantFeature();
 
 var app = builder.Build();
 
@@ -114,6 +118,7 @@ app.MapResourceTypesEndpoints();
 app.MapAvailabilityEndpoints();
 app.MapOccupancyEndpoints();
 app.MapUsersEndpoints();
+app.MapAssistantEndpoints();
 
 
 app.Run();

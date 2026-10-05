@@ -1,7 +1,7 @@
 using System.Net.Http.Headers;
 using Innovia.Api.Common.Auth;
 
-namespace Innovia.Api.Features.Assistant.Ask;
+namespace Innovia.Api.Features.Assistant;
 
 public static class AssistantServiceExtensions
 {
