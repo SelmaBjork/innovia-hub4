@@ -17,7 +17,7 @@ public sealed class Handler
 
     public async Task<Result<Response>>HandleAsync(Command command, CancellationToken ct)
     {
-        var http = _factory.CreateClient("OpenAI");
+        var http = _factory.CreateClient("openAi");
         var body = new
         {
             model = "gpt-5.5",
@@ -41,7 +41,7 @@ public sealed class Handler
 
         foreach(var item in doc.RootElement.GetProperty("output").EnumerateArray())
         {
-            if (item.TryGetProperty("content", out var type)&& type.GetString() == "message")
+            if (item.TryGetProperty("type", out var type)&& type.GetString() == "message")
             {
                 var text = item.GetProperty("content")[0].GetProperty("text").GetString()??"";
                 return Result<Response>.Ok(new Response(text));
