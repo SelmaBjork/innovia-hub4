@@ -9,7 +9,7 @@ public static class AssistantServiceExtensions
     {
         services.AddHttpClient("openAi", (sp, client) =>
         {
-            var key = sp.GetRequiredService<IConfiguration>().GetValue<string>("OpenAi ApiKey")
+            var key = sp.GetRequiredService<IConfiguration>().GetValue<string>("OpenAi:ApiKey")
             ?? throw new InvalidOperationException("OpenAi:ApiKey configuration is missing.");
 
             client.BaseAddress = new Uri("https://api.openai.com/v1/");
