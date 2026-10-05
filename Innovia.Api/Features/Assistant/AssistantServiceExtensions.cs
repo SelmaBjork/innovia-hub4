@@ -16,6 +16,7 @@ public static class AssistantServiceExtensions
             client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", key);
         });
         services.AddScoped<Ask.Handler>();
+        services.AddScoped<Ask.Validator>();
 
         return services;
     }
