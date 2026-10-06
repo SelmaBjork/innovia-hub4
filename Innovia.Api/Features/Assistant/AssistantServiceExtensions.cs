@@ -17,6 +17,7 @@ public static class AssistantServiceExtensions
         });
         services.AddScoped<Ask.Handler>();
         services.AddScoped<Ask.Validator>();
+        services.AddScoped<ResourceSearchTool>();
 
         return services;
     }
