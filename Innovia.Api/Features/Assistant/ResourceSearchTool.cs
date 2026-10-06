@@ -7,10 +7,14 @@ using AvailabilityHandler = Innovia.Api.Features.Availability.GetResourceAvailab
 
 namespace Innovia.Api.Features.Assistant;
 
+public sealed record FoundSlot(Guid ResourceId, string ResourceName, DateTimeOffset StartUtc, DateTimeOffset EndUtc);
+
 public sealed class ResourceSearchTool
 {
     private readonly AppDbContext _context;
     private readonly AvailabilityHandler _availability;
+
+    public List<FoundSlot> FoundSlots { get; } = new();
 
     public ResourceSearchTool(AppDbContext context, AvailabilityHandler availability)
     {
@@ -84,6 +88,9 @@ public sealed class ResourceSearchTool
 
             if (freeSlots.Count == 0)
                 continue;
+
+            foreach (var slot in freeSlots)
+                FoundSlots.Add(new FoundSlot(resource.Id, resource.Name, slot.startUtc, slot.slutUtc));
 
             results.Add(new
             {
