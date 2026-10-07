@@ -7,6 +7,7 @@ import { todayAvailabilitySummary } from "../../lib/availability";
 import { todayIso } from "../../lib/date";
 import { useResourceStatusUpdates } from "../../hooks/useResourceStatusUpdates";
 import { useResourcesBookingUpdates } from "../../hooks/useResourceBookingUpdates";
+import { AssistantPanel } from "../../components/assistant/AssistantPanel";
 
 export function ResourcesPage() {
   useResourceStatusUpdates();
@@ -51,7 +52,8 @@ export function ResourcesPage() {
       {loading && <p className="text-gray-500">Laddar...</p>}
       {!loading && types.length === 0 && <p className="text-gray-500">Inga resurstyper finns.</p>}
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      <div className="lg:col-span-2 grid grid-cols-1 sm:grid-cols-2 gap-4 content-start">
         {types.map((type) => {
           const typeResources = resourcesByType.get(type.id) ?? [];
           const { availableCount, totalCount, closedForRestOfToday } = todayAvailabilitySummary(
@@ -105,6 +107,8 @@ export function ResourcesPage() {
           );
         })}
       </div>
+      <AssistantPanel/>
+      </div>
 
       {flow && (
         <BookingFlowModal
@@ -114,6 +118,8 @@ export function ResourcesPage() {
           onClose={() => setFlow(null)}
         />
       )}
-    </div>
+      </div>
   );
 }
+
+
