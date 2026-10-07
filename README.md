@@ -6,6 +6,7 @@ Innovia Hub är ett bokningssystem för delade resurser (t.ex. mötesrum, skrivb
 
 - [Teknikstack](#teknikstack)
 - [Arkitektur och designval](#arkitektur-och-designval)
+- [AI-bokningsassistent](#ai-bokningsassistent)
 - [Projektstruktur](#projektstruktur)
 - [Domänmodell](#domänmodell)
 - [Kom igång lokalt](#kom-igång-lokalt)
@@ -40,6 +41,7 @@ Innovia Hub är ett bokningssystem för delade resurser (t.ex. mötesrum, skrivb
 - GitHub Actions för CI (build/test/lint) och CD (bygg + push till GHCR + deploy via SSH)
 
 ## Arkitektur och designval
+
 
 ### Backend: Vertical Slice Architecture
 
@@ -76,6 +78,43 @@ Två hubbar sänder ut händelser till klienter som prenumererar:
 
 Frontend ansluter till dessa via `@microsoft/signalr` (se `frontend/src/lib/bookingHubConnection.ts` och `resourceHubConnection.ts`) för att slippa pollning.
 
+### AI-bokningsassistent
+
+Hyresgäster kan skriva vad de behöver på vanlig svenska, till exempel "mötesrum i morgon klockan 14", och få förslag på lediga resurser som de bokar med ett klick. Assistenten ligger som en egen feature i `Innovia.Api/Features/Assistant/` och följer samma vertical slice-struktur som övriga features.
+
+**Flöde**
+
+1. Frontendens chattpanel (på sidan Resurser) skickar meddelandet till `POST /assistant`. Endpointen kräver inloggning (`MemberOrAdmin`).
+2. `Validator` stoppar tomma meddelanden och meddelanden över 500 tecken innan något skickas vidare, eftersom varje anrop kostar token.
+3. `Handler` anropar OpenAI (Responses API) med dagens datum och en beskrivning av verktyget `sokLedigaResurser`.
+4. Modellen tolkar önskemålet och ber om en sökning. `ResourceSearchTool` kör den mot databasen via den befintliga tillgänglighetslogiken (`GetResourceAvailability`) och resultatet skickas tillbaka till modellen. Antalet verktygsrundor är begränsat till 4 per fråga.
+5. Modellen registrerar sina förslag via verktyget `foreslaBokning`. Varje förslag kontrolleras mot de tider sökningen faktiskt gav, så modellen kan inte föreslå ett rum eller en tid som inte finns.
+6. Svaret innehåller en text och en lista med förslag:
+
+```json
+{
+  "reply": "I morgon kl. 14:00 är Mötesrum 2 och 3 lediga. Du bokar med knappen.",
+  "suggestions": [
+    {
+      "resourceId": "…",
+      "resourceName": "Mötesrum 2",
+      "startsAt": "2026-10-07T12:00:00+00:00",
+      "endsAt": "2026-10-07T13:00:00+00:00"
+    }
+  ]
+}
+```
+
+7. Boka-knappen i panelen anropar den vanliga bokningsendpointen (`POST /bookings`), så alla bokningsregler gäller, och bokningen syns i "Mina bokningar".
+
+**Fullbokat-alternativ:** när inget är ledigt vid önskad tid letar sökningen först andra tider samma dag och därefter närmaste dag med lediga tider (upp till 7 dagar fram). Alternativen returneras i fältet `alternativ`.
+
+**Designval**
+
+- **AI:n bokar aldrig själv.** Bokningen sker bara när användaren klickar, vilket också stämmer med kraven på transparens i EU:s AI-förordning och GDPR.
+- Fel hanteras med `Result`/`Error` som i övriga features. OpenAI:s råa felmeddelanden loggas på servern men skickas inte till klienten.
+- Tider skickas i UTC (`+00:00`), eftersom PostgreSQL endast accepterar offset 0. Modellen får tiderna omräknade till svensk tid.
+
 ### Frontend
 
 - **React Router** delar upp gränssnittet i member- och admin-sidor (`src/pages/member`, `src/pages/admin`), med `ProtectedRoute` som skyddar routes baserat på inloggnings-/rollstatus.
@@ -95,7 +134,7 @@ Frontend ansluter till dessa via `@microsoft/signalr` (se `frontend/src/lib/book
 innovia-hub4/
 ├── Innovia.Api/                 # Backend (.NET 10 minimal API)
 │   ├── Common/                  # Delad infrastruktur (Auth, Database, Result, Errors, ...)
-│   ├── Features/                # Vertical slices – en mapp per use-case
+│   ├── Features/                # Vertical slices – en mapp per use-case (inkl. Assistant)
 │   ├── Migrations/              # EF Core-migrations
 │   └── Program.cs               # Composition root
 ├── frontend/                    # Frontend (React + Vite + TS)
@@ -157,6 +196,23 @@ docker compose up -d
 
 Detta startar en lokal PostgreSQL-instans (`innovia_db`) på port `5432`, konfigurerad enligt `docker-compose.yaml`.
 
+### AI-assistenten: API-nyckel
+
+Assistenten behöver en OpenAI-nyckel. Lägg den i user-secrets, så ligger den utanför repot:
+
+```bash
+dotnet user-secrets init --project Innovia.Api
+dotnet user-secrets set "OpenAi:ApiKey" "<din nyckel>" --project Innovia.Api
+```
+
+Varje utvecklare lägger in sin egen nyckel lokalt. Checka aldrig in nyckeln. Alternativ A (allt i Docker) läser inte user-secrets, så där måste nyckeln skickas in som miljövariabeln `OpenAi__ApiKey`.
+
+Frontend läser `VITE_API_URL` från en `.env.development` i **repots rot** (Vite är konfigurerat med `envDir` som pekar dit):
+
+```
+VITE_API_URL=http://localhost:5123
+```
+
 ### 2. Starta backend
 
 ```bash
@@ -196,6 +252,7 @@ Se `example.env` för samtliga variabler som behövs för produktion/Docker Comp
 | `ADMIN_EMAIL` / `ADMIN_PASSWORD` | Uppgifter för det seedade admin-kontot |
 | `FRONTEND_ORIGIN` | Tillåten CORS-origin för API:et |
 | `VITE_API_URL` | URL frontend bygger mot (bakas in i frontend-bygget) |
+| `OpenAi__ApiKey` | API-nyckel för AI-assistenten (sätts som miljövariabel på servern, aldrig i filer i repot) |
 
 Lokalt under utveckling styrs backend istället av `Innovia.Api/appsettings.json` / `appsettings.Development.json`.
 
