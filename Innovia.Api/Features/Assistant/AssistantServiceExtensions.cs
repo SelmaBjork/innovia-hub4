@@ -1,7 +1,7 @@
 using System.Net.Http.Headers;
 using Innovia.Api.Common.Auth;
 
-namespace Innovia.Api.Features.Assistant.Ask;
+namespace Innovia.Api.Features.Assistant;
 
 public static class AssistantServiceExtensions
 {
@@ -9,13 +9,15 @@ public static class AssistantServiceExtensions
     {
         services.AddHttpClient("openAi", (sp, client) =>
         {
-            var key = sp.GetRequiredService<IConfiguration>().GetValue<string>("OpenAi ApiKey")
+            var key = sp.GetRequiredService<IConfiguration>().GetValue<string>("OpenAi:ApiKey")
             ?? throw new InvalidOperationException("OpenAi:ApiKey configuration is missing.");
 
             client.BaseAddress = new Uri("https://api.openai.com/v1/");
             client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", key);
         });
         services.AddScoped<Ask.Handler>();
+        services.AddScoped<Ask.Validator>();
+        services.AddScoped<ResourceSearchTool>();
 
         return services;
     }
