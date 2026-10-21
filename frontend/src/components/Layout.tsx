@@ -12,6 +12,7 @@ const adminLinks = [
   { to: "/admin/resource-types", label: "Resurstyper" },
   { to: "/admin/bookings", label: "Alla bokningar" },
   { to: "/admin/occupancy", label: "Beläggning" },
+  { to: "/admin/sensors", label: "Sensorer"},
   { to: "/admin/users", label: "Användare" },
 ];
 
