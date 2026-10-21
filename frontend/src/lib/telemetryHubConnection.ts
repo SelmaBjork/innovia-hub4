@@ -31,8 +31,8 @@ function buildConnection(): HubConnection {
     .withAutomaticReconnect()
     .build();
 
-    conn.onreconnecting((err)=>{
-        console.warn("Telemetry hub connection lost, attempting to reconnect, err");
+    conn.onreconnecting((err) =>{
+        console.warn("Telemetry hub connection lost, attempting to reconnect", err);
     });
 
      conn.onreconnected(async () => {
