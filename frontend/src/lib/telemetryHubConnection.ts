@@ -10,7 +10,7 @@ const IOT_HUB_URL = import.meta.env.VITE_IOT_HUB_URL ?? "http://localhost:5103";
 const TENANT_SLUG = import.meta.env.VITE_IOT_TENANT_SLUG ?? "innovia";
 
 const JoinTenant = "JoinTenant";
-export const MeasurementReceived = "measurementRecived";
+export const MeasurementReceived = "measurementReceived";
 
 export type RealtimeMeasurement = {
     tenantSlug: string;
