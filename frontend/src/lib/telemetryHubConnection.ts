@@ -14,7 +14,7 @@ export const MeasurementReceived = "measurementRecived";
 
 export type RealtimeMeasurement = {
     tenantSlug: string;
-    deviceID: string;
+    deviceId: string;
     type: string;
     value: number;
     time: string;
