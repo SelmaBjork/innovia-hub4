@@ -8,21 +8,22 @@ import {
 } from "../lib/telemetryHubConnection";
 
 export type LatestReading = {
-    temperature?: number;
-    co2?: number;
-    time: string;
+  temperature?: number;
+  co2?: number;
+  time: string;
 };
 
 export type LatestByDevice = Record<string, LatestReading>;
+export type TelemetryStatus = "connecting" | "live" | "offline";
 
 export function useTelemetryUpdates() {
-     const [latest, setLatest] = useState<LatestByDevice>({});
-  const [connected, setConnected] = useState(false);
+  const [latest, setLatest] = useState<LatestByDevice>({});
+  const [status, setStatus] = useState<TelemetryStatus>("connecting");
 
   useEffect(() => {
     const conn = getTelemetryHubConnection();
 
-      function onMeasurement(m: RealtimeMeasurement) {
+    function onMeasurement(m: RealtimeMeasurement) {
       setLatest((prev) => {
         const next: LatestReading = { ...prev[m.deviceId], time: m.time };
         if (m.type === "temperature") next.temperature = m.value;
@@ -37,10 +38,10 @@ export function useTelemetryUpdates() {
       try {
         await ensureTelemetryStarted(conn);
         await joinTelemetryTenant(conn);
-        setConnected(true);
+        setStatus("live");
       } catch (err) {
-        console.error("Could not connect to telemetry hub", err);
-        setConnected(false);
+        console.warn("Telemetry hub is offline", err);
+        setStatus("offline");
       }
     })();
 
@@ -49,6 +50,5 @@ export function useTelemetryUpdates() {
     };
   }, []);
 
-  return { latest, connected };
-
+  return { latest, status };
 }
