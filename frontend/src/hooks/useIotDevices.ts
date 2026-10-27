@@ -5,5 +5,6 @@ export function useIotDevices() {
     return useQuery({
         queryKey: ["iotDevices"],
         queryFn: fetchIotDevices,
+        retry: 1,
     });
 }
