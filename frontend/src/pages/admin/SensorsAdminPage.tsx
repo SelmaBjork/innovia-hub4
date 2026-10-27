@@ -51,22 +51,24 @@ function SensorCard({ device, reading }: { device: IotDevice; reading?: LatestRe
 }
 
 export function SensorsAdminPage() {
-  const { data: devices, isLoading, isError, error } = useIotDevices(); // krav 4: DeviceRegistry
-  const { latest, connected } = useTelemetryUpdates();                 // krav 5: SignalR
+  const { data: devices, isLoading, isError, refetch } = useIotDevices(); 
+  const { latest, status } = useTelemetryUpdates();                 
 
   return (
     <div>
       <div className="sticky top-14 z-10 -mx-4 px-4 bg-gray-50 dark:bg-gray-950 pt-4 pb-3 mb-1">
         <div className="flex items-center justify-between gap-3">
           <h1 className="text-2xl font-semibold text-gray-900 dark:text-gray-100">Sensorer</h1>
-          <span
+                    <span
             className={`rounded-full px-2.5 py-0.5 text-xs font-medium ${
-              connected
+              status === "live"
                 ? "bg-green-100 text-green-800 dark:bg-green-900/40 dark:text-green-300"
+                : status === "offline"
+                ? "bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-300"
                 : "bg-gray-200 text-gray-600 dark:bg-gray-800 dark:text-gray-400"
             }`}
           >
-            {connected ? "● Live" : "Ansluter…"}
+            {status === "live" ? "● Live" : status === "offline" ? "Offline" : "Ansluter…"}
           </span>
         </div>
         {devices && (
@@ -78,17 +80,20 @@ export function SensorsAdminPage() {
 
       {isLoading && <p className="text-gray-500">Laddar sensorer...</p>}
 
-      {isError && (
-        <p className="text-red-600 dark:text-red-400">
-          Kunde inte hämta sensorer: {(error as Error).message}
-        </p>
-      )}
-
-      {devices && (
-        <div className="grid gap-4 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5">
-          {devices.map((d) => (
-            <SensorCard key={d.id} device={d} reading={latest[d.id]} />
-          ))}
+           {isError && (
+        <div className="rounded-xl border border-amber-200 dark:border-amber-900 bg-amber-50 dark:bg-amber-950/40 p-4">
+          <p className="font-medium text-amber-800 dark:text-amber-300">
+            IoT-enheterna är offline just nu
+          </p>
+          <p className="text-sm text-amber-700 dark:text-amber-400 mt-1">
+            Sensorservern kan inte nås. Bokningar och övriga delar av Innovia Hub fungerar som vanligt.
+          </p>
+          <button
+            onClick={() => refetch()}
+            className="mt-3 text-sm font-medium text-amber-800 underline dark:text-amber-300"
+          >
+            Försök igen
+          </button>
         </div>
       )}
     </div>
