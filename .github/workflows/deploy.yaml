@@ -34,8 +34,8 @@ jobs:
           file: Innovia.Api/Dockerfile
           push: true
           tags: |
-            ghcr.io/${{ github.repository_owner }}/innovia-api:latest
-            ghcr.io/${{ github.repository_owner }}/innovia-api:${{ github.sha }}
+            ghcr.io/${{ env.OWNER }}/innovia-api:latest
+            ghcr.io/${{ env.OWNER }}/innovia-api:${{ github.sha }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
@@ -48,8 +48,8 @@ jobs:
           build-args: |
             VITE_API_URL=${{ vars.VITE_API_URL }}
           tags: |
-            ghcr.io/${{ github.repository_owner }}/innovia-frontend:latest
-            ghcr.io/${{ github.repository_owner }}/innovia-frontend:${{ github.sha }}
+            ghcr.io/${{ env.OWNER }}/innovia-frontend:latest
+            ghcr.io/${{ env.OWNER }}/innovia-frontend:${{ github.sha }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
