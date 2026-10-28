@@ -96,6 +96,14 @@ export function SensorsAdminPage() {
           </button>
         </div>
       )}
+
+        {devices && (
+        <div className="grid gap-4 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5">
+          {devices.map((d) => (
+            <SensorCard key={d.id} device={d} reading={latest[d.id]} />
+          ))}
+        </div>
+      )}
     </div>
   );
 }
