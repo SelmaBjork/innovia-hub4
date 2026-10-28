@@ -32,6 +32,7 @@ services:
       AdminUser__Email: ${ADMIN_EMAIL}
       AdminUser__Password: ${ADMIN_PASSWORD}
       Cors__FrontendOrigin: ${FRONTEND_ORIGIN}
+      OpenAi__ApiKey: ${OPENAI_API_KEY}
     networks: [internal, edge]
 
   frontend:
