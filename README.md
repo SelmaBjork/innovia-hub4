@@ -2,11 +2,41 @@
 
 Innovia Hub är ett bokningssystem för delade resurser (t.ex. mötesrum, skrivbord och annan utrustning) på ett kontor/coworking-hub. Systemet består av ett .NET-backend-API, en React-frontend och realtidsuppdateringar via SignalR, och körs i produktion som Docker-containrar bakom Caddy.
 
+## Testa den deployade versionen
+
+**Länk:** https://app.178.62.223.243.sslip.io
+
+| Testkonto (admin) | |
+|---|---|
+| E-post | admin@innovia.se |
+| Lösenord | Test123! |
+
+Du kan också registrera ett eget medlemskonto på inloggningssidan.
+
+| Funktion | Så här testar du |
+|---|---|
+| **Bokning** | **Resurser** → välj resurs och tid → boka. Syns under **Mina bokningar** / **Alla bokningar**. |
+| **Realtid (SignalR)** | Öppna appen i två flikar. Boka i den ena – den andra uppdateras utan omladdning. |
+| **AI-assistent** | I panelen på **Resurser**, skriv t.ex. *"Jag behöver ett mötesrum imorgon kl 14"*. Boka direkt från förslagen. |
+| **IoT-sensorer** | Som admin → **Sensorer**. IoT-servern är inte driftsatt, så sidan visar att enheterna är offline medan resten av plattformen fungerar. |
+
+## Mina vidareutvecklingar
+
+Grunden byggdes i grupparbetet. Efter det har jag på egen hand utvecklat:
+
+- **AI-bokningsassistent** – hela `Features/Assistant` i backend och chattpanelen i frontend (se [AI-bokningsassistent](#ai-bokningsassistent)): function calling mot riktiga lediga tider, Boka-knapp, alternativ när det är fullbokat.
+- **IoT-integration med realtidsdata** – sensorsidan som hämtar enheter från IoT-plattformen och visar temperatur och CO₂ live via SignalR, med offline-hantering (se [IoT-sensorer](#iot-sensorer)).
+- **Driftsättning av min version** – produktionskonfiguration för OpenAI-nyckeln, rättning av deploy-workflowen för min fork, och driftsättning på DigitalOcean.
+
 ## Innehåll
 
+
+- [Testa den deployade versionen](#testa-den-deployade-versionen)   
+- [Mina vidareutvecklingar](#mina-vidareutvecklingar)              
 - [Teknikstack](#teknikstack)
 - [Arkitektur och designval](#arkitektur-och-designval)
 - [AI-bokningsassistent](#ai-bokningsassistent)
+- [IoT-sensorer](#iot-sensorer)                                    
 - [Projektstruktur](#projektstruktur)
 - [Domänmodell](#domänmodell)
 - [Kom igång lokalt](#kom-igång-lokalt)
@@ -115,12 +145,22 @@ Hyresgäster kan skriva vad de behöver på vanlig svenska, till exempel "mötes
 - Fel hanteras med `Result`/`Error` som i övriga features. OpenAI:s råa felmeddelanden loggas på servern men skickas inte till klienten.
 - Tider skickas i UTC (`+00:00`), eftersom PostgreSQL endast accepterar offset 0. Modellen får tiderna omräknade till svensk tid.
 
+### IoT-sensorer
+
+Admin-sidan **Sensorer** visar sensorer i lokalerna (temperatur och CO₂) från den separata IoT-plattformen Innovia Hub IoT.
+
+- **Enhetslistan** hämtas från IoT-plattformens DeviceRegistry (`GET /api/tenants/{tenantId}/devices`) via `src/api/iotDevices.ts` och `useIotDevices`.
+- **Realtidsvärden** kommer via SignalR från IoT-plattformens Realtime.Hub (`/hub/telemetry`). `telemetryHubConnection.ts` följer samma mönster som bokningshubben, och `useTelemetryUpdates` sparar senaste värdet per enhet. CO₂-värdet färgkodas (grönt/gult/rött).
+- **Offline-hantering:** IoT-servern är en separat tjänst som inte alltid är igång. Svarar den inte visas statusen *Offline* och ett meddelande om att enheterna inte kan nås, med möjlighet att försöka igen. Resten av plattformen påverkas inte. I den deployade versionen är IoT-servern inte driftsatt, så sidan visar alltid offline-läget där.
+
 ### Frontend
 
 - **React Router** delar upp gränssnittet i member- och admin-sidor (`src/pages/member`, `src/pages/admin`), med `ProtectedRoute` som skyddar routes baserat på inloggnings-/rollstatus.
 - **TanStack Query** hanterar all server state (hämtning, cache, refetch, mutationer) mot API:et istället för manuell `useState`/`useEffect`-hantering av data.
 - **API-klienten** (`src/api/client.ts`) gör alla anrop med `credentials: "include"` så att autentiseringscookies alltid skickas med, utan att JS behöver hantera tokens direkt.
 - Tailwind CSS används för styling utan separat komponentbibliotek.
+
+
 
 ### Datalager
 
@@ -236,6 +276,17 @@ npm run dev
 
 Frontend startar via Vite (default `http://localhost:5173`) och pratar med backend via `VITE_API_URL` (se `.env`/`example.env`).
 
+### (Valfritt) IoT-sensorer lokalt
+
+Utan IoT-plattformen visas sensorerna som offline. Kör IoT-plattformen lokalt (se dess `Implementation.md`) och lägg till i `.env.development` i repots rot:
+
+```
+VITE_IOT_API_URL=http://localhost:5101
+VITE_IOT_HUB_URL=http://localhost:5103
+VITE_IOT_TENANT_ID=<tenant-id från DeviceRegistry>
+VITE_IOT_TENANT_SLUG=innovia
+```
+
 ### 4. Öppna appen
 
 Gå till frontend-adressen i webbläsaren, logga in med admin-kontot eller registrera en ny medlem.
@@ -252,7 +303,8 @@ Se `example.env` för samtliga variabler som behövs för produktion/Docker Comp
 | `ADMIN_EMAIL` / `ADMIN_PASSWORD` | Uppgifter för det seedade admin-kontot |
 | `FRONTEND_ORIGIN` | Tillåten CORS-origin för API:et |
 | `VITE_API_URL` | URL frontend bygger mot (bakas in i frontend-bygget) |
-| `OpenAi__ApiKey` | API-nyckel för AI-assistenten (sätts som miljövariabel på servern, aldrig i filer i repot) |
+| `OPENAI_API_KEY` | API-nyckel för AI-assistenten. Skickas till API:t som `OpenAi__ApiKey` (sätts bara i `.env` på servern, aldrig i repot) |
+| `GHCR_OWNER` | GitHub-användarnamn (små bokstäver) som images hämtas från i GHCR |
 
 Lokalt under utveckling styrs backend istället av `Innovia.Api/appsettings.json` / `appsettings.Development.json`.
 
